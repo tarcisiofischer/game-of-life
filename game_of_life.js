@@ -2,17 +2,63 @@ const PIXEL_SIZE = 8;
 const NCOLS = 64;
 const NROWS = 64;
 
-function paint_screen(ctx, population)
+const PALETTE_DB = {
+    "Black and white": [
+        [255, 255, 255],
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0]
+    ],
+    "Ice Cream": [
+        [0, 48, 59],
+        [255, 119, 119],
+        [255, 206, 150],
+        [241, 242, 218]
+    ],
+    "Nostalgia": [
+        [64, 80, 16],
+        [208, 208, 88],
+        [160, 168, 64],
+        [112, 128, 40]
+    ],
+    "Horehound-4": [
+        [60, 20, 2],
+        [202, 154, 87],
+        [233, 111, 27],
+        [49, 43, 36]
+    ],
+    "CMYK": [
+        [0, 0, 0],
+        [0, 255, 255],
+        [255, 0, 255],
+        [255, 255, 0]
+    ]
+};
+
+function get_pixel_color(population, i, j, color_palette_name)
+{
+    let palette = PALETTE_DB[color_palette_name];
+    if (population[i][j] == 0) {
+        return palette[0];
+    }
+
+    let n_neigs = count_neigs(population, i, j);
+    if (n_neigs <= 2) {
+        return palette[1];
+    } else if (n_neigs <= 4) {
+        return palette[2];
+    } else {
+        return palette[3];
+    }
+}
+
+function paint_screen(ctx, population, color_palette_name)
 {
     let raw_img = ctx.getImageData(0, 0, NCOLS * PIXEL_SIZE, NROWS * PIXEL_SIZE);
     let raw_data = raw_img.data;
     for (let i = 0; i < NROWS; i++) {
         for (let j = 0; j < NCOLS; j++) {
-            let color = [
-                255 * (1 - population[i][j]),
-                255 * (1 - population[i][j]),
-                255 * (1 - population[i][j])
-            ]
+            let color = get_pixel_color(population, i, j, color_palette_name);
             for (let pi = 0; pi < PIXEL_SIZE; pi++) {
                 let ii = i * PIXEL_SIZE + pi;
                 for (let pj = 0; pj < PIXEL_SIZE; pj++) {
@@ -103,6 +149,7 @@ function setup_buttons(game_state)
     let pause_resume_btn = document.getElementById("pause-resume-button");
     let step_btn = document.getElementById("step-button");
     let clear_btn = document.getElementById("clear-button");
+    let palette_sel = document.getElementById("palette-selection");
 
     pause_resume_btn.onclick = function() {
         game_state.running = !game_state.running;
@@ -120,6 +167,16 @@ function setup_buttons(game_state)
         clear_population(game_state.old_population);
         clear_population(game_state.population);
     }
+
+    for (const key in PALETTE_DB) {
+        let el = document.createElement("option");
+        el.textContent = key;
+        el.value = key;
+        palette_sel.appendChild(el);
+    }
+    palette_sel.onchange = function(e) {
+        game_state.color_palette_name = e.target.value;
+    }
 }
 
 function step(game_state)
@@ -134,7 +191,7 @@ function gameloop(ctx, game_state)
         if (game_state.running) {
             step(game_state);
         }
-        paint_screen(ctx, game_state.population);
+        paint_screen(ctx, game_state.population, game_state.color_palette_name);
 
         gameloop(ctx, game_state);
     }, 100);
@@ -184,11 +241,12 @@ window.onload = function()
         running: true,
         population: create_array(NROWS, NCOLS),
         old_population: create_array(NROWS, NCOLS),
+        color_palette_name: Object.keys(PALETTE_DB)[0]
     }
 
     setup_screen(screen, game_state);
     setup_buttons(game_state);
 
-    paint_screen(ctx, game_state.population);
+    paint_screen(ctx, game_state.population, game_state.color_palette_name);
     gameloop(ctx, game_state);
 }
