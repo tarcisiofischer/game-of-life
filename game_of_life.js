@@ -89,6 +89,42 @@ function run_step(new_population, old_population)
     }
 }
 
+function init_buttons(game_state)
+{
+    let pause_resume_btn = document.getElementById("pause-resume-button");
+    let step_btn = document.getElementById("step-button");
+
+    pause_resume_btn.onclick = function() {
+        game_state.running = !game_state.running;
+
+        // Only enable the "step" button if the simulation is not running
+        step_btn.disabled = game_state.running;
+    }
+    step_btn.disabled = game_state.running;
+
+    step_btn.onclick = function() {
+        step(game_state);
+    }
+}
+
+function step(game_state)
+{
+    run_step(game_state.population, game_state.old_population);
+    copy_array_data(game_state.population, game_state.old_population);
+}
+
+function gameloop(ctx, game_state)
+{
+    setTimeout(function () {
+        if (game_state.running) {
+            step(game_state);
+        }
+        paint_screen(ctx, game_state.population);
+
+        gameloop(ctx, game_state);
+    }, 100);
+}
+
 window.onload = function()
 {
     let screen = document.getElementById("screen");
@@ -96,18 +132,14 @@ window.onload = function()
     screen.height = NROWS * PIXEL_SIZE;
     let ctx = screen.getContext("2d");
 
-    let new_population = create_array(NROWS, NCOLS);
-    let old_population = create_array(NROWS, NCOLS);
-    paint_screen(ctx, new_population);
-
-    function timeout() {
-        setTimeout(function () {
-            run_step(new_population, old_population);
-            copy_array_data(new_population, old_population);
-            paint_screen(ctx, new_population);
-
-            timeout();
-        }, 100);
+    let game_state = {
+        running: true,
+        population: create_array(NROWS, NCOLS),
+        old_population: create_array(NROWS, NCOLS),
     }
-    timeout();
+
+    init_buttons(game_state);
+
+    paint_screen(ctx, game_state.population);
+    gameloop(ctx, game_state);
 }
