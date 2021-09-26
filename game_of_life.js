@@ -51,6 +51,15 @@ function create_array(n, m)
     return arr;
 }
 
+function clear_population(population)
+{
+    for (let i = 0; i < NROWS; i++) {
+        for (let j = 0; j < NCOLS; j++) {
+            population[i][j] = 0;
+        }
+    }
+}
+
 function copy_array_data(from, to)
 {
     for (let i = 0; i < NROWS; i++) {
@@ -89,21 +98,27 @@ function run_step(new_population, old_population)
     }
 }
 
-function init_buttons(game_state)
+function setup_buttons(game_state)
 {
     let pause_resume_btn = document.getElementById("pause-resume-button");
     let step_btn = document.getElementById("step-button");
+    let clear_btn = document.getElementById("clear-button");
 
     pause_resume_btn.onclick = function() {
         game_state.running = !game_state.running;
 
-        // Only enable the "step" button if the simulation is not running
+        // Only enable setup button if the game is not running
         step_btn.disabled = game_state.running;
     }
     step_btn.disabled = game_state.running;
 
     step_btn.onclick = function() {
         step(game_state);
+    }    
+
+    clear_btn.onclick = function() {
+        clear_population(game_state.old_population);
+        clear_population(game_state.population);
     }
 }
 
@@ -125,20 +140,54 @@ function gameloop(ctx, game_state)
     }, 100);
 }
 
+function setup_screen(screen, game_state)
+{
+    screen.width = NCOLS * PIXEL_SIZE;
+    screen.height = NROWS * PIXEL_SIZE;
+
+    to_game_coord = function(x) { return Math.floor(x / PIXEL_SIZE); };
+
+    let is_drawing = false;
+    let last_draw_position = [-1, -1];
+    function do_draw_at(draw_position) {
+        let [j, i] = draw_position;
+        if (last_draw_position[0] != j || last_draw_position[1] != i) {
+            let new_value = !game_state.population[i][j];
+            game_state.population[i][j] = new_value;
+            game_state.old_population[i][j] = new_value;
+        }
+        last_draw_position = [...draw_position];
+    }
+    screen.onmousedown = function(e) {
+        is_drawing = true;
+        let game_position = [to_game_coord(e.offsetX), to_game_coord(e.offsetY)];
+        do_draw_at(game_position);
+    }
+    screen.onmouseup = function(e) {
+        last_draw_position = [-1, -1];
+        is_drawing = false;
+    }
+    screen.onmousemove = function(e) {
+        if (!is_drawing) {
+            return;
+        }
+        let game_position = [to_game_coord(e.offsetX), to_game_coord(e.offsetY)];
+        do_draw_at(game_position);
+    }
+}
+
 window.onload = function()
 {
     let screen = document.getElementById("screen");
-    screen.width = NCOLS * PIXEL_SIZE;
-    screen.height = NROWS * PIXEL_SIZE;
     let ctx = screen.getContext("2d");
-
     let game_state = {
         running: true,
         population: create_array(NROWS, NCOLS),
         old_population: create_array(NROWS, NCOLS),
     }
 
-    init_buttons(game_state);
+    setup_screen(screen, game_state);
+    setup_buttons(game_state);
 
     paint_screen(ctx, game_state.population);
     gameloop(ctx, game_state);

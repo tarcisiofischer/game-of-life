@@ -15,7 +15,12 @@ At each step on time, the following rules apply:
 - Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 
 
-## Example
+## Examples
 
-![Example](./example.gif)
+### Random start population
+![Example](./examples/example.gif)
+
+
+### Mouse interaction
+![Example 2](./examples/example2.gif)
 
